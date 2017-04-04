@@ -12,9 +12,7 @@ public class Main {
             System.out.println("Usage: -r: root directory, -c: number of cores.");
         }
 
-        //System.out.printf(STARTING_SERVER_MESSAGE, Arguments.getHost(), Arguments.getPort());
-
         HTTPServer server = new HTTPServer(config);
-        server.run();
+        server.start();
     }
 }
