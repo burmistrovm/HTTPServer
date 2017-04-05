@@ -9,9 +9,12 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.string.StringDecoder;
+import io.netty.handler.codec.string.StringEncoder;
+import io.netty.util.CharsetUtil;
 
 public class HTTPServer {
-    private Configuration config;
+    private final Configuration config;
     private final EventLoopGroup workers;
     public HTTPServer(Configuration configuration){
         this.config = configuration;
@@ -22,17 +25,21 @@ public class HTTPServer {
         ServerBootstrap server = new ServerBootstrap();
         server.group(workers)
                 .channel(NioServerSocketChannel.class);
+
         server.childHandler(new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel nioServerSocketChannel) throws Exception {
                 nioServerSocketChannel.pipeline()
-                        .addLast(new ServerHandler());
-
+                        .addLast(new StringDecoder(CharsetUtil.UTF_8))
+                        .addLast(new ServerHandler(config.getDir()))
+                        .addLast(new StringEncoder(CharsetUtil.UTF_8));
             }
         });
+
         server.option(ChannelOption.SO_BACKLOG, 128)
-                .option(ChannelOption.SO_BACKLOG, 128)
-                .childOption(ChannelOption.SO_KEEPALIVE, true);
+                .childOption(ChannelOption.SO_KEEPALIVE, true)
+                .childOption(ChannelOption.TCP_NODELAY, true);
+
         try {
             ChannelFuture future = server.bind(config.getPort()).sync();
             future.channel().closeFuture().sync();
