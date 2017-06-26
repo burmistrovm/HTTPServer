@@ -5,7 +5,7 @@ public class Configuration {
     private String host = "127.0.0.1";
     private int threads = Runtime.getRuntime().availableProcessors();
     private String directory = System.getProperty("user.dir")+'/';
-    private int port = 8081;
+    private int port = 80;
 
     public Configuration(String[] args){
         Options options = new Options();
@@ -26,6 +26,7 @@ public class Configuration {
         String parsedDir = cmd.getOptionValue("r");
         if (parsedDir != null) {
             directory = parsedDir;
+            System.out.print(directory);
         }
 
         String parsedCPUStr = cmd.getOptionValue("c");
@@ -34,7 +35,7 @@ public class Configuration {
         }
 
         String parsedPortStr = cmd.getOptionValue("p");
-        if (parsedCPUStr != null) {
+        if (parsedPortStr != null) {
             port = Integer.parseInt(parsedPortStr);
         }
     }

@@ -3,10 +3,7 @@ package server;
 import http.Request;
 import http.Response;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.*;
 
 
 public class ServerHandler extends ChannelInboundHandlerAdapter {
@@ -25,7 +22,15 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         builder = new ResponseBuilder(dir);
         builder.buildResponse(request);
         response = builder.getResponse();
-        final ChannelFuture channelfuture = ctx.writeAndFlush(Unpooled.copiedBuffer(response.getByte()));
-        channelfuture.addListener(ChannelFutureListener.CLOSE);
+        ctx.write(Unpooled.copiedBuffer(response.getByte()));
+        final ChannelFuture channelfuture;
+        if (response.getFileInputStream() != null) {
+            channelfuture = ctx.writeAndFlush(new DefaultFileRegion(response.getFileInputStream().getChannel(), 0, response.getFileLength()));
+            channelfuture.addListener(ChannelFutureListener.CLOSE);
+        }
+        else {
+            ctx.flush();
+            ctx.close();
+        }
     }
 }

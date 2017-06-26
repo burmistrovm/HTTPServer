@@ -2,10 +2,7 @@ package http;
 
 
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Locale;
+import java.util.*;
 
 public class Header {
     private String httpVersion = "HTTP/1.1 ";
@@ -13,7 +10,7 @@ public class Header {
     private String contentType;
     private String connection;
     private String time;
-    private String serverVersion = "Server: HL_1.0"+ "\r\n";
+    private String serverVersion = "Server: Highload/1.0.0 (UNIX)"+ "\r\n";
     private String status;
 
     private static HashMap<String, String> contentTypes;
@@ -41,14 +38,11 @@ public class Header {
     }
 
     public void setTime() {
-        final Calendar calendar = Calendar.getInstance();
-        final String dayWeek = calendar.getDisplayName(Calendar.DAY_OF_WEEK, Calendar.SHORT, Locale.getDefault());
-        final int day = calendar.get(Calendar.DAY_OF_MONTH);
-        final String month = calendar.getDisplayName(Calendar.MONTH, Calendar.SHORT, Locale.getDefault());
-        int year = calendar.get(Calendar.YEAR);
-        year = year % 100;
-        time = "Date: " + dayWeek + ", " + day + " " + month + " " + year + " " +
-                (new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date()) + " GMT\r\n");
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat dateFormat = new SimpleDateFormat(
+                "EEE, dd MMM yyyy HH:mm:ss z", Locale.getDefault());
+        dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+        time = "Date: " + dateFormat.format(calendar.getTime()) + "\r\n";
     }
 
     public void setConnection() {
@@ -60,10 +54,10 @@ public class Header {
     }
 
     public void setContentLength(int length) {
-        contentLength = "Content-Length: " +length + "\r\n";
+        contentLength = "Content-Length: " + length + "\r\n";
     }
 
-    public byte[] getBytes() {
-        return (httpVersion + status + contentType + contentLength + connection + time + serverVersion).getBytes();
+    public String getString() {
+        return httpVersion + status + contentType + contentLength + connection + time + serverVersion + "\r\n";
     }
 }

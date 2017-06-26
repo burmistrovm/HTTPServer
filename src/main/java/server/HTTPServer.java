@@ -16,14 +16,17 @@ import io.netty.util.CharsetUtil;
 public class HTTPServer {
     private final Configuration config;
     private final EventLoopGroup workers;
+    private final EventLoopGroup bossGroup;
+
     public HTTPServer(Configuration configuration){
         this.config = configuration;
         workers = new NioEventLoopGroup(this.config.getNumOfThreads());
+        bossGroup = new NioEventLoopGroup();
     }
 
     public void start(){
         ServerBootstrap server = new ServerBootstrap();
-        server.group(workers)
+        server.group(bossGroup, workers)
                 .channel(NioServerSocketChannel.class);
 
         server.childHandler(new ChannelInitializer<SocketChannel>() {

@@ -1,16 +1,14 @@
 package server;
 
-
-import com.sun.rmi.rmid.ExecOptionPermission;
 import http.Header;
 import http.Request;
 import http.Response;
 
+import java.io.FileInputStream;
 import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 
 public class ResponseBuilder {
     private Response response;
@@ -18,6 +16,7 @@ public class ResponseBuilder {
     private String relFilePath;
     private Path filePath;
     private Header header;
+    private Boolean noIndex = Boolean.FALSE;
 
     public ResponseBuilder(String directory) {
         rootDir = directory;
@@ -27,10 +26,30 @@ public class ResponseBuilder {
         relFilePath = req.getFile();
         response = new Response();
         header = new Header();
-        System.out.println(req.getMethod());
-        if (req.getMethod().equals("GET")) {
+        if (req.getMethod() == ("GET")) {
             if (checkURI() == Boolean.TRUE) {
-                setBody();
+                setContentLength();
+                setContentType();
+                setFileInputStream();
+                header.setStatus("200 OK\r\n");
+            }
+            else if (noIndex == Boolean.FALSE) {
+                header.setStatus("404 Not Found\r\n");
+                filePath = Paths.get(System.getProperty("user.dir")+'/' + "404.html");
+                setContentLength();
+                setContentType();
+                setFileInputStream();
+            }
+            else {
+                header.setStatus("403 Forbidden\r\n");
+                filePath = Paths.get(System.getProperty("user.dir")+'/' + "403.html");
+                setContentLength();
+                setContentType();
+                setFileInputStream();
+            }
+        }
+        else if (req.getMethod() == "HEAD") {
+            if (checkURI() == Boolean.TRUE) {
                 setContentLength();
                 setContentType();
                 header.setStatus("200 OK\r\n");
@@ -38,41 +57,42 @@ public class ResponseBuilder {
             else {
                 header.setStatus("404 Not Found\r\n");
             }
-            header.setTime();
-            header.setConnection();
         }
-        if (req.getMethod() == "HEAD") {
-            if (checkURI() == Boolean.TRUE) {
-                setContentLength();
-                setContentType();
-                header.setStatus("200 OK\r\n");
-            }
-            else {
-                header.setStatus("404 Not Found\r\n");
-            }
-            header.setTime();
-            header.setConnection();
-            response.setHeader(header);
-        }
-        else {
+        else if (req.getMethod() == "FORBIDDEN") {
             header.setStatus("405 Method Not Allowed\r\n");
-            header.setTime();
-            header.setConnection();
-            response.setHeader(header);
+            filePath = Paths.get(System.getProperty("user.dir")+'/' + "405.html");
+            setContentLength();
+            setContentType();
+            setFileInputStream();
         }
+        header.setTime();
+        header.setConnection();
+        response.setHeader(header);
     }
 
     public Boolean checkURI() {
+        final String[] check = relFilePath.split("\\.\\.\\/");
+        if (check.length > 1) {
+            return Boolean.FALSE;
+        }
         relFilePath = relFilePath.split("\\?")[0];
-        relFilePath = URLDecoder.decode(relFilePath);
+        try {
+            relFilePath = URLDecoder.decode(relFilePath, "UTF-8");
+        }
+        catch (Exception e){
+            System.out.println(e);
+        }
         filePath = Paths.get(rootDir + relFilePath);
         if (Files.isDirectory(filePath)) {
-            System.out.println("dir");
             filePath = Paths.get(rootDir + relFilePath, "index.html");
             if (Files.exists(filePath)) {
                 relFilePath = relFilePath + "index.html";
                 filePath = Paths.get(rootDir + relFilePath);
                 return Boolean.TRUE;
+            }
+            else {
+                noIndex = Boolean.TRUE;
+                return Boolean.FALSE;
             }
         }
         else if (Files.exists(filePath)) {
@@ -84,6 +104,7 @@ public class ResponseBuilder {
     private void setContentLength() {
         try {
             final byte[] file = Files.readAllBytes(filePath);
+            response.setFileLength(file.length);
             header.setContentLength(file.length);
         }
         catch (Exception e){
@@ -96,25 +117,11 @@ public class ResponseBuilder {
         header.setContentType(splitedPath[splitedPath.length-1]);
     }
 
-    private void setBody() {
+    private void setFileInputStream() {
         try {
-            String body = "";
-            if (header.getContentType().contains("text")) {
-                final List<String> fileText = Files.readAllLines(filePath);
-                for (String text : fileText) {
-                    System.out.println(text);
-                    body = body + text + "\n";
-                }
-            } else {
-                final byte[] fileBytes = Files.readAllBytes(filePath);
-                for (byte one : fileBytes) {
-                    body = body + one;
-                }
-            }
-            response.setBody(body);
+            response.setFileInputStream(new FileInputStream(filePath.toFile()));
         }
         catch (Exception e){
-            System.out.println(e);
         }
     }
 
